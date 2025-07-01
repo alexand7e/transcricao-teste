@@ -5,3 +5,4 @@ torch
 openai-whisper
 google-generativeai
 ffmpeg-python
+PyAudio

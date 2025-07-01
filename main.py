@@ -143,44 +143,63 @@ def ensure_ffmpeg():
         log_error("FFmpeg não encontrado no PATH")
         raise RuntimeError("Instale FFmpeg (ffprobe) e deixe disponível no PATH.")
 
-from yt_dlp import YoutubeDL
-
+import yt_dlp 
 def yt_download(url: str):
-    """Baixa o áudio de um vídeo do YouTube como WAV e retorna caminho + título"""
-    log_info(f"🎬 Iniciando download do YouTube: {url}")
+    """
+    Baixa o áudio de um vídeo do YouTube como WAV usando a biblioteca yt-dlp.
+    É mais robusto e eficiente que o método subprocess.
+    """
+    log_info(f"🎬 Iniciando download do YouTube (método atualizado): {url}")
     ensure_ffmpeg()
     update_progress("📥 Baixando áudio do YouTube…", value=5, step="download")
 
-    tmp_base = tempfile.mktemp(dir=tmp_dir)
-    wav_path = tmp_base + ".wav"
-    log_info(f"📁 Arquivo temporário: {wav_path}")
+    tmp_base = os.path.join(tmp_dir, next(tempfile._get_candidate_names()))
+    log_info(f"📁 Arquivo temporário base: {tmp_base}")
+
+    # Configurações para o yt-dlp
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'wav',
+        }],
+        'outtmpl': f'{tmp_base}',
+        'logtostderr': False,
+        'quiet': True,
+        'noplaylist': True,
+    }
 
     try:
-        ydl_opts = {
-            'format': 'bestaudio/best',
-            'outtmpl': tmp_base + '.%(ext)s',
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'wav',
-                'preferredquality': '192',
-            }],
-            'quiet': True,
-            'noplaylist': True,
-            'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
-            }
-        }
-        with YoutubeDL(ydl_opts) as ydl:
+        # Usa a biblioteca yt-dlp diretamente
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            log_info("🤖 Executando yt-dlp para extrair informações e baixar...")
             info_dict = ydl.extract_info(url, download=True)
-            title = sanitize(info_dict.get("title", "video"))
+            title = info_dict.get('title', 'video_youtube')
+            wav_path = f"{tmp_base}.wav"
+
+            if not os.path.exists(wav_path):
+                 log_error(f"Arquivo WAV esperado não foi encontrado em: {wav_path}")
+                 # Tenta encontrar o arquivo com base na saída, se o nome for diferente
+                 downloaded_file = ydl.prepare_filename(info_dict)
+                 renamed_wav_path = os.path.splitext(downloaded_file)[0] + '.wav'
+                 if os.path.exists(renamed_wav_path):
+                     wav_path = renamed_wav_path
+                 else:
+                     raise FileNotFoundError(f"Download falhou, arquivo WAV não encontrado.")
 
         log_success(f"Download concluído: {wav_path}")
         log_success(f"Título obtido: {title}")
-        return wav_path, title
 
+        return wav_path, sanitize(title)
+
+    except yt_dlp.utils.DownloadError as e:
+        # Captura erros específicos de download (como 403 Forbidden)
+        log_error(f"Erro de Download no yt-dlp: {e}")
+        raise RuntimeError(f"Erro no download do YouTube: {e}")
     except Exception as e:
-        log_error(f"Erro no yt-dlp: {e}")
-        raise RuntimeError(f"Erro no processamento do YouTube: {e}")
+        # Captura outros erros inesperados
+        log_error(f"Erro inesperado durante o download do YouTube: {e}")
+        raise RuntimeError(f"Um erro inesperado ocorreu: {e}")
 
 
 def video_to_wav(path: str):

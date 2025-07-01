@@ -1,8 +1,23 @@
+# --- Ambiente ---
+# Especifique a versão do Python para evitar problemas de compatibilidade
+
+
+# --- Framework da Aplicação ---
 streamlit
-moviepy==1.0.3
+
+
+# --- Bibliotecas para Processamento de Mídia ---
+moviepy
 pydub
+
+
+# --- Bibliotecas de Inteligência Artificial ---
+
+# PyTorch (é uma dependência para o Whisper)
 torch
+
+# Whisper da OpenAI para a transcrição de áudio
 openai-whisper
+
+# SDK da Google para os modelos generativos (Gemini)
 google-generativeai
-ffmpeg-python
-PyAudio

@@ -1,0 +1,6 @@
+streamlit
+moviepy
+pydub
+torch
+openai-whisper
+google-generativeai

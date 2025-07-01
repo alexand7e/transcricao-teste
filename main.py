@@ -11,7 +11,7 @@ from datetime import datetime
 from queue import Queue
 import threading
 
-from moviepy.editor import VideoFileClip
+from moviepy.video.io.VideoFileClip import VideoFileClip
 from pydub import AudioSegment
 import torch
 import whisper

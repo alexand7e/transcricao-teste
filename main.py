@@ -165,8 +165,11 @@ def yt_download(url: str):
                 'preferredquality': '192',
             }],
             'quiet': True,
+            'noplaylist': True,
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+            }
         }
-
         with YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=True)
             title = sanitize(info_dict.get("title", "video"))

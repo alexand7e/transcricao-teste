@@ -143,6 +143,8 @@ def ensure_ffmpeg():
         log_error("FFmpeg não encontrado no PATH")
         raise RuntimeError("Instale FFmpeg (ffprobe) e deixe disponível no PATH.")
 
+from yt_dlp import YoutubeDL
+
 def yt_download(url: str):
     """Baixa o áudio de um vídeo do YouTube como WAV e retorna caminho + título"""
     log_info(f"🎬 Iniciando download do YouTube: {url}")
@@ -150,27 +152,33 @@ def yt_download(url: str):
     update_progress("📥 Baixando áudio do YouTube…", value=5, step="download")
 
     tmp_base = tempfile.mktemp(dir=tmp_dir)
-    log_info(f"📁 Arquivo temporário: {tmp_base}")
+    wav_path = tmp_base + ".wav"
+    log_info(f"📁 Arquivo temporário: {wav_path}")
+
     try:
-        subprocess.run([
-            "yt-dlp", "-f", "bestaudio",
-            "--extract-audio", "--audio-format", "wav",
-            "-o", tmp_base + ".%(ext)s", url,
-        ], check=True, capture_output=True)
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'outtmpl': tmp_base + '.%(ext)s',
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'wav',
+                'preferredquality': '192',
+            }],
+            'quiet': True,
+        }
 
-        wav_path = tmp_base + ".wav"
+        with YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(url, download=True)
+            title = sanitize(info_dict.get("title", "video"))
+
         log_success(f"Download concluído: {wav_path}")
-
-        log_info("📋 Obtendo título do vídeo...")
-        title = subprocess.check_output(
-            ["yt-dlp", "--print", "%(title)s", "--no-download", url], text=True
-        ).strip()
-
         log_success(f"Título obtido: {title}")
-        return wav_path, sanitize(title)
-    except subprocess.CalledProcessError as e:
+        return wav_path, title
+
+    except Exception as e:
         log_error(f"Erro no yt-dlp: {e}")
-        raise
+        raise RuntimeError(f"Erro no processamento do YouTube: {e}")
+
 
 def video_to_wav(path: str):
     """Extrai e salva o áudio de um arquivo de vídeo em WAV temporário"""

@@ -21,3 +21,6 @@ openai-whisper
 
 # SDK da Google para os modelos generativos (Gemini)
 google-generativeai
+
+python-docx
+yt-dlp
